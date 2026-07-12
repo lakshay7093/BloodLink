@@ -6,13 +6,14 @@ Connecting Donors. Saving Lives.
 
 BloodLink is a Blood Donor Emergency Platform that helps patients, hospitals, and donors connect quickly during emergencies.
 
+
+
 ## Tech Stack
 
-- Next.js
-- React Native (Expo)
+- Next.js 16
 - TypeScript
-- PostgreSQL
-- Prisma
+- Tailwind CSS
+- Prisma ORM
+- MySQL 8
 - Firebase Authentication
 - Firebase Cloud Messaging
-- Tailwind CSS

@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum HospitalStatus {
+  PENDING
+  UNDER_REVIEW
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum BloodRequestStatus {
+  CREATED
+  SEARCHING_DONORS
+  DONOR_ACCEPTED
+  DONOR_ON_THE_WAY
+  DONATION_COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  BLOOD_REQUEST
+  REQUEST_ACCEPTED
+  DONOR_ON_THE_WAY
+  REQUEST_COMPLETED
+  GENERAL
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum HospitalOwnership {
+  GOVERNMENT
+  PRIVATE
+}
+
+enum HospitalType {
+  GENERAL
+  MULTI_SPECIALTY
+  BLOOD_BANK
+  CLINIC
+}
+
+model User {
+  id          String  @id @default(uuid())
+  firebaseUid String  @unique
+  email       String  @unique
+  name        String
+  phone       String? @unique
+  photoUrl    String?
+  role        Role    @default(USER)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  donor     Donor?
+  hospital  Hospital?
+}
+
+model Donor {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bloodGroup BloodGroup
+  gender     Gender
+
+  dateOfBirth DateTime?
+
+  weight Float?
+
+  isAvailable Boolean @default(true)
+
+  lastDonationAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Hospital {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name String
+
+  ownership HospitalOwnership
+  type      HospitalType
+
+  licenseNo          String  @unique
+  licenseDocumentUrl String?
+
+  status     HospitalStatus @default(PENDING)
+  isVerified Boolean        @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
