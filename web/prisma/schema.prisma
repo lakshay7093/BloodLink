@@ -58,6 +58,7 @@ enum NotificationType {
   DONOR_ON_THE_WAY
   REQUEST_COMPLETED
   GENERAL
+  SYSTEM
 }
 
 enum UrgencyLevel {
@@ -79,6 +80,12 @@ enum HospitalType {
   CLINIC
 }
 
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
 model User {
   id          String  @id @default(uuid())
   firebaseUid String  @unique
@@ -88,10 +95,19 @@ model User {
   photoUrl    String?
   role        Role    @default(USER)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  donor     Donor?
-  hospital  Hospital?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donor         Donor?
+  hospital      Hospital?
+  bloodRequests BloodRequest[] @relation("RequesterBloodRequests")
+
+  locationId String?   @unique
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  notifications Notification[]
+
+  deviceTokens DeviceToken[]
 }
 
 model Donor {
@@ -111,8 +127,11 @@ model Donor {
 
   lastDonationAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  acceptedRequests BloodRequest[] @relation("AcceptedDonorRequests")
+
+  donationHistory DonationHistory[]
 }
 
 model Hospital {
@@ -131,6 +150,192 @@ model Hospital {
 
   status     HospitalStatus @default(PENDING)
   isVerified Boolean        @default(false)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bloodRequests BloodRequest[] @relation("HospitalBloodRequests")
+
+  locationId String?   @unique
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  donationHistory DonationHistory[]
+}
+
+model BloodRequest {
+  id String @id @default(uuid())
+
+  // =========================
+  // Relations
+  // =========================
+
+  /// User who created the request
+  requesterId String
+  requester   User   @relation("RequesterBloodRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  /// Hospital where blood is required
+  hospitalId String?
+  hospital   Hospital? @relation("HospitalBloodRequests", fields: [hospitalId], references: [id], onDelete: SetNull)
+
+  /// Donor who accepted the request
+  acceptedDonorId String?
+  acceptedDonor   Donor?  @relation("AcceptedDonorRequests", fields: [acceptedDonorId], references: [id], onDelete: SetNull)
+
+  // =========================
+  // Patient Snapshot
+  // =========================
+
+  patientName       String
+  patientAge        Int?
+  patientGender     Gender?
+  patientRelation   String?
+  patientBloodGroup BloodGroup
+
+  // =========================
+  // Blood Request Details
+  // =========================
+
+  unitsRequired Int
+
+  urgency UrgencyLevel
+
+  status BloodRequestStatus @default(CREATED)
+
+  isEmergency Boolean @default(true)
+
+  requiredBefore DateTime?
+
+  notes String?
+
+  // =========================
+  // Tracking
+  // =========================
+
+  acceptedAt  DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+
+  expiredAt DateTime?
+
+  donationHistory DonationHistory?
+}
+
+model Location {
+  id String @id @default(uuid())
+
+  // =========================
+  // Address Information
+  // =========================
+
+  addressLine1 String
+  addressLine2 String?
+
+  landmark String?
+
+  city     String
+  district String
+  state    String
+  country  String
+
+  pincode String
+
+  // =========================
+  // Geo Coordinates
+  // =========================
+
+  latitude  Decimal @db.Decimal(10, 8)
+  longitude Decimal @db.Decimal(11, 8)
+
+  // =========================
+  // Relations
+  // =========================
+
+  user User?
+
+  hospital Hospital?
+
+  // =========================
+  // Timestamps
+  // =========================
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  // =========================
+  // Relations
+  // =========================
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bloodRequestId String?
+  bloodRequest   BloodRequest? @relation(fields: [bloodRequestId], references: [id], onDelete: SetNull)
+
+  // =========================
+  // Notification Content
+  // =========================
+
+  type NotificationType
+
+  title   String
+  message String
+
+  isRead Boolean @default(false)
+
+  // =========================
+  // Timestamps
+  // =========================
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  actionUrl String?
+}
+
+model DeviceToken {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token String @unique
+
+  platform DevicePlatform
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lastUsedAt DateTime?
+}
+
+model DonationHistory {
+  id String @id @default(uuid())
+
+  donorId String
+  donor   Donor  @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  bloodRequestId String       @unique
+  bloodRequest   BloodRequest @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+
+  hospitalId String?
+  hospital   Hospital? @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+
+  donatedUnits Int
+
+  donationDate DateTime @default(now())
+
+  remarks String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
